@@ -11,10 +11,12 @@ app.use(cors());
 
 app.use("/api/v1", router);
 
-const PORT = process.env.PORT || 5000;
+app.get("/", (req, res) => {
+  res.send("ecommerce backend is working");
+});
 
 connectDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`server is running at port: ${PORT}`);
+  app.listen(process.env.PORT, () => {
+    console.log(`server is running at port: ${process.env.PORT}`);
   });
 });
