@@ -68,19 +68,22 @@ const login = async (req, res) => {
         userExist.password
       );
 
-      const EXPIRE_TIME = "30d";
+      const payload = {
+        userId: userExist._id.toString(),
+        email: userExist.email,
+        isAdmin: userExist.isAdmin,
+      };
+
       // json web token
-      const token = jwt.sign(
-        {
-          userId: userExist._id.toString(),
-          email: userExist.email,
-          isAdmin: userExist.isAdmin,
-        },
-        process.env.JWT_SECRET_KEY,
-        {
-          expiresIn: EXPIRE_TIME,
-        }
-      );
+      const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+      });
+
+      // refresh token
+
+      const refresh_token = jwt.sign(payload, process.env.REFRESH_SECRET_KEY, {
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
+      });
 
       // setting jwt token in cookie
 
@@ -98,9 +101,9 @@ const login = async (req, res) => {
         res.status(200).send({
           success: true,
           access_token: token,
+          refresh_token: refresh_token,
           message: "user login successfully",
           userId: userExist._id.toString(),
-          expiresIn: EXPIRE_TIME,
         });
       } else {
         return res.status(401).send({
@@ -139,32 +142,40 @@ const userDetails = async (req, res) => {
 };
 
 // *=================================================
-//* LOGOUT logic
+//* REFRESH_TOKEN
 // *================================================
 
-const logout = async (req, res) => {
+const refreshToken = async (req, res) => {
   try {
-    const cookie = req.headers.cookie;
+    const token = req.body.refresh_token;
+    if (token) {
+      const decodedUser = jwt.verify(token, process.env.REFRESH_SECRET_KEY);
 
-    const prevtoken = cookie?.split("=")[1];
+      if (decodedUser) {
+        const token = jwt.sign(
+          {
+            userId: decodedUser?.userId.toString(),
+            email: decodedUser?.email,
+            isAdmin: decodedUser?.isAdmin,
+          },
+          process.env.JWT_SECRET_KEY,
+          {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+          }
+        );
 
-    if (!prevtoken)
-      return res.status(400).send({ message: "token is required" });
-
-    jwt.verify(prevtoken, process.env.JWT_SECRET_KEY, (err, user) => {
-      if (err) {
-        return res.status(403).send({ message: "Authentication failed" });
+        return res.status(200).send({
+          access_token: token,
+          message: "new token generated successfully",
+        });
+      } else {
+        return res.send({ message: "invalid token" });
       }
-
-      res.clearCookie("access_token");
-      res.cookies[`access_token`] = "";
-
-      return res.status(200).send({ message: "User successfully logged out" });
-    });
+    }
   } catch (error) {
     console.log(error, "error");
     res.status(500).send({ msg: error });
   }
 };
 
-module.exports = { login, register, userDetails, logout };
+module.exports = { login, register, userDetails, refreshToken };
