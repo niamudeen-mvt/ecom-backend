@@ -1,5 +1,5 @@
 const User = require("../models/user.model");
-const Cart = require("../models/cart.model");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 // *=================================================
@@ -51,15 +51,33 @@ const login = async (req, res) => {
 
     const isPasswordMatch = await bcrypt.compare(password, userExist.password);
 
-    res.cookie("access_token", await userExist.generateToken(), {
+    // json web token
+    const token = jwt.sign(
+      {
+        userId: userExist._id.toString(),
+        email: userExist.email,
+        isAdmin: userExist.isAdmin,
+      },
+      process.env.JWT_SECRET_KEY,
+      {
+        expiresIn: process.env.TOKEN_EXPIRATION_TIME,
+      }
+    );
+
+    if (res.cookie[userExist._id.toString()]) {
+      res.cookie[userExist._id.toString()] = "";
+    }
+    res.cookie(userExist._id.toString(), token, {
+      path: "/",
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       httpOnly: true,
-      maxAge: 3600000,
+      sameSite: "lax",
     });
+
     if (isPasswordMatch) {
       res.status(200).send({
         success: true,
         message: "user login successfully",
-        token: await userExist.generateToken(),
         userId: userExist._id.toString(),
       });
     } else {
@@ -68,6 +86,7 @@ const login = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error);
     res.status(500).send({ msg: error });
   }
 };
@@ -76,25 +95,53 @@ const login = async (req, res) => {
 //* USER BY ID logic
 // *================================================
 
-const userById = async (req, res) => {
+const userDetails = async (req, res) => {
   try {
-    const userId = req.params.id;
-
-    const userExist = await User.findById({ _id: userId });
+    const userExist = await User.findById({ _id: req.user.userId });
     if (!userExist) {
       return res.status(400).send({
         message: "User not found",
       });
+    } else {
+      res.status(200).send({
+        success: true,
+        user: userExist,
+        message: "user found successfully",
+      });
     }
-
-    res.status(200).send({
-      success: true,
-      user: userExist,
-      message: "user found successfully",
-    });
   } catch (error) {
+    console.log(error, "error");
     res.status(500).send({ msg: error });
   }
 };
 
-module.exports = { login, register, userById };
+// *=================================================
+//* LOGOUT logic
+// *================================================
+
+const logout = async (req, res) => {
+  try {
+    const cookie = req.headers.cookie;
+
+    const prevtoken = cookie?.split("=")[1];
+
+    if (!prevtoken)
+      return res.status(400).send({ message: "token is required" });
+
+    jwt.verify(prevtoken, process.env.JWT_SECRET_KEY, (err, user) => {
+      if (err) {
+        return res.status(403).send({ message: "Authentication failed" });
+      }
+
+      res.clearCookie("access_token");
+      res.cookies[`access_token`] = "";
+
+      return res.status(200).send({ message: "User successfully logged out" });
+    });
+  } catch (error) {
+    console.log(error, "error");
+    res.status(500).send({ msg: error });
+  }
+};
+
+module.exports = { login, register, userDetails, logout };

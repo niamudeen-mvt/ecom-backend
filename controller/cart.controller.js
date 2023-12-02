@@ -1,13 +1,40 @@
 const Cart = require("../models/cart.model");
 
 // *=================================================
+//* CART DETAILS LOGIC
+// *================================================
+
+const cartDetails = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    // Find the user's cart or create a new one if it doesn't exist
+    let userCart = await Cart.findOne({ userId });
+
+    if (userCart) {
+      res.status(200).send({
+        success: true,
+        cart: userCart.cart,
+        message: "cart found successfully",
+      });
+    } else {
+      res.status(400).send({
+        success: false,
+        message: "no cart data found",
+      });
+    }
+  } catch (error) {
+    res.status(500).send({ message: error });
+  }
+};
+
+// *=================================================
 //* ADD TO CART LOGIC
 // *================================================
 
 const addtoCart = async (req, res) => {
   try {
-    const { userId, product_id, title, description, image, category, price } =
-      req.body;
+    const userId = req.user;
+    const { product_id, title, description, image, category, price } = req.body;
 
     const productDetails = {
       product_id,
@@ -55,13 +82,11 @@ const addtoCart = async (req, res) => {
 
 const removeFromCart = async (req, res) => {
   try {
-    const { userId, product_id } = req.body;
-    console.log(req.body);
+    const userId = req.user;
+    const { product_id } = req.body;
 
     // Find the user's cart or create a new one if it doesn't exist
     let userCart = await Cart.findOne({ userId });
-
-    console.log(userCart, "userCart");
 
     if (!userCart) {
       return res.status(400).send({
@@ -87,33 +112,4 @@ const removeFromCart = async (req, res) => {
   }
 };
 
-// *=================================================
-//* CART BY USER ID LOGIC
-// *================================================
-
-const cartByUserId = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    console.log(req.params);
-
-    // Find the user's cart or create a new one if it doesn't exist
-    let userCart = await Cart.findOne({ userId });
-
-    if (userCart) {
-      res.status(200).send({
-        success: true,
-        cart: userCart.cart,
-        message: "cart found successfully",
-      });
-    } else {
-      res.status(400).send({
-        success: false,
-        message: "no cart data found",
-      });
-    }
-  } catch (error) {
-    res.status(500).send({ message: error });
-  }
-};
-
-module.exports = { addtoCart, cartByUserId, removeFromCart };
+module.exports = { addtoCart, cartDetails, removeFromCart };
