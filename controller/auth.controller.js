@@ -68,7 +68,7 @@ const login = async (req, res) => {
         userExist.password
       );
 
-      const EXPIRE_TIME = "3s";
+      const EXPIRE_TIME = "30d";
       // json web token
       const token = jwt.sign(
         {

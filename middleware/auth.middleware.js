@@ -44,7 +44,7 @@ const refreshToken = (req, res) => {
           },
           process.env.JWT_SECRET_KEY,
           {
-            expiresIn: "3s",
+            expiresIn: "30d",
           }
         );
 
