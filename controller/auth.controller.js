@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { validationResult } = require("express-validator");
 
 // *=================================================
 //* user registration logic
@@ -8,27 +9,36 @@ const bcrypt = require("bcrypt");
 
 const register = async (req, res) => {
   try {
-    const { username, email, phone, password, isAdmin } = req.body;
+    const errors = validationResult(req);
 
-    const userExist = await User.findOne({ email });
+    if (!errors.isEmpty()) {
+      console.log("11111111111");
+      console.log(errors.array(), "errors.array() ");
+      return res.status(400).send({ errors: errors.array() });
+    } else {
+      console.log("22222222222");
+      const { username, email, phone, password, isAdmin } = req.body;
 
-    if (userExist) {
-      return res.status(400).send({ message: "email already exists" });
+      const userExist = await User.findOne({ email });
+
+      if (userExist) {
+        return res.status(400).send({ message: "email already exists" });
+      }
+
+      const userCreated = await User.create({
+        username,
+        email,
+        phone,
+        password,
+        isAdmin,
+      });
+
+      res.status(201).send({
+        success: true,
+        data: userCreated,
+        message: "user registred successfully",
+      });
     }
-
-    const userCreated = await User.create({
-      username,
-      email,
-      phone,
-      password,
-      isAdmin,
-    });
-
-    res.status(201).send({
-      success: true,
-      data: userCreated,
-      message: "user registred successfully",
-    });
   } catch (error) {
     res.status(500).send({ msg: error });
   }
@@ -40,50 +50,63 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    const userExist = await User.findOne({ email });
-    if (!userExist) {
-      return res.status(400).send({
-        message: "Invalid Credentials",
-      });
-    }
-
-    const isPasswordMatch = await bcrypt.compare(password, userExist.password);
-
-    // json web token
-    const token = jwt.sign(
-      {
-        userId: userExist._id.toString(),
-        email: userExist.email,
-        isAdmin: userExist.isAdmin,
-      },
-      process.env.JWT_SECRET_KEY,
-      {
-        expiresIn: process.env.TOKEN_EXPIRATION_TIME,
-      }
-    );
-
-    if (res.cookie[userExist._id.toString()]) {
-      res.cookie[userExist._id.toString()] = "";
-    }
-    res.cookie(userExist._id.toString(), token, {
-      path: "/",
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
-      sameSite: "lax",
-    });
-
-    if (isPasswordMatch) {
-      res.status(200).send({
-        success: true,
-        message: "user login successfully",
-        userId: userExist._id.toString(),
-      });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).send({ errors: errors.array() });
     } else {
-      return res.status(401).send({
-        message: "Invalid email or passoword",
-      });
+      const { email, password } = req.body;
+
+      const userExist = await User.findOne({ email });
+      if (!userExist) {
+        return res.status(400).send({
+          message: "Invalid Credentials",
+        });
+      }
+
+      const isPasswordMatch = await bcrypt.compare(
+        password,
+        userExist.password
+      );
+
+      const EXPIRE_TIME = "3s";
+      // json web token
+      const token = jwt.sign(
+        {
+          userId: userExist._id.toString(),
+          email: userExist.email,
+          isAdmin: userExist.isAdmin,
+        },
+        process.env.JWT_SECRET_KEY,
+        {
+          expiresIn: EXPIRE_TIME,
+        }
+      );
+
+      // setting jwt token in cookie
+
+      // if (res.cookie[userExist._id.toString()]) {
+      //   res.cookie[userExist._id.toString()] = "";
+      // }
+      // res.cookie(userExist._id.toString(), token, {
+      //   path: "/",
+      //   expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      //   httpOnly: true,
+      //   sameSite: "lax",
+      // });
+
+      if (isPasswordMatch) {
+        res.status(200).send({
+          success: true,
+          access_token: token,
+          message: "user login successfully",
+          userId: userExist._id.toString(),
+          expiresIn: EXPIRE_TIME,
+        });
+      } else {
+        return res.status(401).send({
+          message: "Invalid email or passoword",
+        });
+      }
     }
   } catch (error) {
     console.log(error);
