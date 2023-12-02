@@ -33,7 +33,7 @@ const cartDetails = async (req, res) => {
 
 const addtoCart = async (req, res) => {
   try {
-    const userId = req.user;
+    const { userId } = req.user;
     const { product_id, title, description, image, category, price } = req.body;
 
     const productDetails = {
@@ -72,6 +72,7 @@ const addtoCart = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error, "error");
     res.status(500).send({ message: error });
   }
 };
@@ -82,7 +83,7 @@ const addtoCart = async (req, res) => {
 
 const removeFromCart = async (req, res) => {
   try {
-    const userId = req.user;
+    const { userId } = req.user;
     const { product_id } = req.body;
 
     // Find the user's cart or create a new one if it doesn't exist
