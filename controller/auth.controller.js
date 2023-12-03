@@ -13,11 +13,8 @@ const register = async (req, res) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      console.log("11111111111");
-      console.log(errors.array(), "errors.array() ");
       return res.status(400).send({ errors: errors.array() });
     } else {
-      console.log("22222222222");
       const { username, email, phone, password, isAdmin } = req.body;
 
       const userExist = await User.findOne({ email });
@@ -41,6 +38,7 @@ const register = async (req, res) => {
       });
     }
   } catch (error) {
+    console.log(error, "error");
     res.status(500).send({ msg: error });
   }
 };

@@ -1,12 +1,12 @@
 const Cart = require("../models/cart.model");
 
 // *=================================================
-//* CART DETAILS LOGIC
+//* CART DETAILS BY ID LOGIC
 // *================================================
 
 const cartDetails = async (req, res) => {
   try {
-    const { userId } = req.user;
+    const userId = req.params.id;
     // Find the user's cart or create a new one if it doesn't exist
     let userCart = await Cart.findOne({ userId });
 
@@ -17,7 +17,7 @@ const cartDetails = async (req, res) => {
         message: "cart found successfully",
       });
     } else {
-      res.status(400).send({
+      res.status(200).send({
         success: false,
         message: "no cart data found",
       });
