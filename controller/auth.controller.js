@@ -2,6 +2,7 @@ const User = require("../models/user.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { validationResult } = require("express-validator");
+const TOKEN_DETAILS = require("../config/index");
 
 // *=================================================
 //* user registration logic
@@ -70,20 +71,22 @@ const login = async (req, res) => {
 
       const payload = {
         userId: userExist._id.toString(),
-        email: userExist.email,
-        isAdmin: userExist.isAdmin,
       };
 
       // json web token
-      const token = jwt.sign(payload, process.env.JWT_SECRET_KEY, {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+      const token = jwt.sign(payload, TOKEN_DETAILS.JWT_SECRET_KEY, {
+        expiresIn: TOKEN_DETAILS.ACCESS_TOKEN_EXPIRATION_TIME,
       });
 
       // refresh token
 
-      const refresh_token = jwt.sign(payload, process.env.REFRESH_SECRET_KEY, {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
-      });
+      const refresh_token = jwt.sign(
+        payload,
+        TOKEN_DETAILS.REFRESH_SECRET_KEY,
+        {
+          expiresIn: TOKEN_DETAILS.REFRESH_TOKEN_EXPIRATION_TIME,
+        }
+      );
 
       // setting jwt token in cookie
 
@@ -145,35 +148,35 @@ const userDetails = async (req, res) => {
 // *================================================
 
 const refreshToken = async (req, res) => {
+  const token = req.body.refresh_token;
+  if (!token) {
+    return res.status(200).send({
+      success: false,
+      message: "A token is required for authorization",
+    });
+  }
   try {
-    const token = req.body.refresh_token;
-    if (token) {
-      const decodedUser = jwt.verify(token, process.env.REFRESH_SECRET_KEY);
+    const decodedUser = jwt.verify(token, TOKEN_DETAILS.REFRESH_SECRET_KEY);
+    if (decodedUser) {
+      const token = jwt.sign(
+        {
+          userId: decodedUser?.userId.toString(),
+        },
+        TOKEN_DETAILS.JWT_SECRET_KEY,
+        {
+          expiresIn: TOKEN_DETAILS.ACCESS_TOKEN_EXPIRATION_TIME,
+        }
+      );
 
-      if (decodedUser) {
-        const token = jwt.sign(
-          {
-            userId: decodedUser?.userId.toString(),
-            email: decodedUser?.email,
-            isAdmin: decodedUser?.isAdmin,
-          },
-          process.env.JWT_SECRET_KEY,
-          {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
-          }
-        );
-
-        return res.status(200).send({
-          access_token: token,
-          message: "new token generated successfully",
-        });
-      } else {
-        return res.send({ message: "invalid token" });
-      }
+      return res.status(200).send({
+        access_token: token,
+        message: "new token generated successfully",
+      });
+    } else {
+      return res.send({ message: "invalid token" });
     }
   } catch (error) {
-    console.log(error, "error");
-    res.status(500).send({ msg: error });
+    return res.status(400).send({ message: "invalid token" });
   }
 };
 
