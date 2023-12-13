@@ -3,8 +3,35 @@
   "builds": [{ "src": "./index.js", "use": "@vercel/node" }],
   "routes": [
     {
+      "src": "/api/*",
+      "dest": "index.js"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/index.js"
+    }
+  ],
+  "env": {
+    "MY_CUSTOM_VAR": "my-custom-value"
+  },
+  "rewrites": [
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "max-age=604800"
+        }
+      ]
     }
   ]
 }
