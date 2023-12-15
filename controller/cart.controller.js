@@ -14,7 +14,7 @@ const cartDetails = async (req, res) => {
       res.status(200).send({
         success: true,
         cart: userCart.cart,
-        message: "cart found successfully",
+        message: "Cart found successfully",
       });
     } else {
       res.status(200).send({
@@ -63,12 +63,12 @@ const addtoCart = async (req, res) => {
       await userCart.save();
       res.status(201).send({
         success: true,
-        message: "Product added to cart successfully",
+        message: "Product added successfully",
       });
     } else {
       res.status(400).send({
         success: false,
-        message: "Product already exists in the cart",
+        message: "Product already exists",
       });
     }
   } catch (error) {
@@ -106,7 +106,7 @@ const removeFromCart = async (req, res) => {
     res.status(200).send({
       success: true,
       cart: userCart.cart,
-      message: "Product removed from cart successfully",
+      message: "Product removed successfully",
     });
   } catch (error) {
     res.status(500).send({ message: error });

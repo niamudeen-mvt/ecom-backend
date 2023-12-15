@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
   res.send("ecommerce backend is working");
 });
 app.get("/testing", (req, res) => {
-  res.send("testing ecommerce backend");
+  res.send("testing2 ecommerce backend");
 });
 
 connectDb().then(() => {
