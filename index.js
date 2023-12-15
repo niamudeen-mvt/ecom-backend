@@ -14,6 +14,9 @@ app.use("/api/v1", router);
 app.get("/", (req, res) => {
   res.send("ecommerce backend is working");
 });
+app.get("/testing", (req, res) => {
+  res.send("testing ecommerce backend");
+});
 
 connectDb().then(() => {
   app.listen(process.env.PORT, () => {
